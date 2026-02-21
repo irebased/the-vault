@@ -14,8 +14,9 @@
   .toolbar {
     position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
     z-index: 1000; display: flex; gap: 8px; background: #16213e;
-    padding: 8px 16px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    border: 1px solid #0f3460; align-items: center;
+    padding: 8px 12px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 1px solid #0f3460; align-items: center; flex-wrap: wrap; justify-content: center;
+    max-width: calc(100vw - 24px);
   }
   .toolbar button {
     background: #0f3460; color: #e0e0e0; border: 1px solid #1a1a4e;
@@ -26,6 +27,9 @@
   .toolbar button.active { background: #e94560; border-color: #e94560; color: #fff; }
   .toolbar .sep { width: 1px; height: 24px; background: #0f3460; }
   .toolbar .status { color: #888; font-size: 12px; margin-left: 4px; }
+  .toolbar .stage-group {
+    display: flex; gap: 2px; background: #0a0a1a; padding: 3px; border-radius: 6px;
+  }
 
   /* Legend */
   .legend {
@@ -127,19 +131,61 @@
 
   .leaflet-container { background: #1a1a2e; }
 
-  /* Stage tab styling */
-  .stage-tabs {
-    position: fixed; top: 12px; right: 12px; z-index: 1000;
-    display: flex; gap: 4px; background: #16213e;
-    padding: 4px; border-radius: 8px; border: 1px solid #0f3460;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  }
+  /* Stage tabs (inside toolbar) */
   .stage-tab {
-    padding: 5px 12px; border-radius: 6px; border: none;
-    background: transparent; color: #888; cursor: pointer; font-size: 12px;
+    padding: 4px 10px; border-radius: 4px; border: none;
+    background: transparent; color: #666; cursor: pointer; font-size: 12px;
+    transition: all 0.15s;
   }
   .stage-tab.active { background: #0f3460; color: #e0e0e0; }
   .stage-tab:hover { color: #e0e0e0; }
+
+  /* Stats panel */
+  .stats-toggle {
+    position: fixed; top: 80px; right: 0; z-index: 1001;
+    background: #16213e; border: 1px solid #0f3460; border-right: none;
+    color: #e0e0e0; padding: 8px 6px; border-radius: 8px 0 0 8px;
+    cursor: pointer; font-size: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    transition: right 0.3s;
+  }
+  .stats-toggle.open { right: 300px; }
+  .stats-panel {
+    position: fixed; top: 0; right: -300px; width: 300px; height: 100vh;
+    z-index: 1000; background: #16213e; border-left: 1px solid #0f3460;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.5); transition: right 0.3s;
+    overflow-y: auto; padding: 20px 16px;
+  }
+  .stats-panel.open { right: 0; }
+  .stats-panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .stats-panel-header h3 { color: #e0e0e0; font-size: 15px; margin: 0; }
+  .stats-close {
+    display: none; background: none; border: none; color: #888;
+    font-size: 22px; cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  .stats-close:hover { color: #e0e0e0; }
+
+  @media (max-width: 640px) {
+    .stats-toggle.open { right: 0; }
+    .stats-panel { width: 100vw; right: -100vw; }
+    .stats-close { display: block; }
+  }
+  .stats-section { margin-bottom: 20px; }
+  .stats-section h4 { color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid #0f3460;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: #ccc; font-size: 13px; }
+  .stat-value { color: #e0e0e0; font-size: 13px; font-weight: 600; }
+  .stat-bar-wrap { flex: 1; margin: 0 12px; height: 4px; background: #0a0a1a; border-radius: 2px; }
+  .stat-bar { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .stat-row-bar { display: flex; align-items: center; padding: 5px 0; }
+  .stat-row-bar .stat-label { min-width: 80px; font-size: 12px; }
+  .stat-row-bar .stat-value { min-width: 24px; text-align: right; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -150,6 +196,12 @@
 <div class="toolbar">
   <button id="btn-arrow" title="Draw arrows between locations">Draw Arrow</button>
   <div class="sep"></div>
+  <div class="stage-group">
+    <button class="stage-tab active" data-stage="all">All</button>
+    <button class="stage-tab" data-stage="stage1">S1</button>
+    <button class="stage-tab" data-stage="stage2">S2</button>
+  </div>
+  <div class="sep"></div>
   <button id="btn-export" title="Export map data">Export</button>
   <button id="btn-import" title="Import map data">Import</button>
   <div class="sep"></div>
@@ -157,11 +209,14 @@
   <span id="status" class="status"></span>
 </div>
 
-<!-- Stage tabs -->
-<div class="stage-tabs">
-  <button class="stage-tab active" data-stage="all">All</button>
-  <button class="stage-tab" data-stage="stage1">Stage 1</button>
-  <button class="stage-tab" data-stage="stage2">Stage 2</button>
+<!-- Stats panel -->
+<button id="stats-toggle" class="stats-toggle" title="Map details">&#9776;</button>
+<div id="stats-panel" class="stats-panel">
+  <div class="stats-panel-header">
+    <h3>Map Details</h3>
+    <button id="stats-close" class="stats-close">&times;</button>
+  </div>
+  <div id="stats-content"></div>
 </div>
 
 <!-- Legend -->
@@ -810,9 +865,179 @@ document.addEventListener('keydown', (e) => {
     if (noteEditor.style.display === 'block') { noteEditor.style.display = 'none'; return; }
     if (modalOverlay.classList.contains('open')) { modalOverlay.classList.remove('open'); return; }
     if (colorMenu.style.display === 'block') { colorMenu.style.display = 'none'; return; }
+    if (statsPanel.classList.contains('open')) { closeStats(); return; }
     if (arrowMode) { btnArrow.click(); return; }
   }
 });
+
+// ============================================================
+// Continent mapping
+// ============================================================
+const CONTINENTS = {
+  "Accra, Ghana": "Africa", "Algiers, Algeria": "Africa", "Cairo, Egypt": "Africa",
+  "Casablanca, Morocco": "Africa", "Dimtu, Ethiopia": "Africa", "Divo, Cote d'Ivore": "Africa",
+  "Georgetown, Ascension Island": "Africa", "Maputo, Mozambique": "Africa",
+  "Maiduguri, Nigeria": "Africa", "Sokode, Togo": "Africa", "Monkey Bay, Malawi": "Africa",
+  "Ambanja, Madegascar": "Africa", "Marrakesh, Morocco": "Africa",
+  "Buffalo, New York": "N. America", "DeKalb, Illinois": "N. America",
+  "Montreal, Quebec": "N. America", "Nome, Alaska": "N. America",
+  "Tampa Bay, Florida": "N. America", "Tijuana, Mexico": "N. America",
+  "Toad Suck, Arkansas": "N. America", "Wichita, Kansas": "N. America",
+  "Yellowknife, Northwest Territories, Canada": "N. America",
+  "New Orleans, Louisiana": "N. America", "Yellowstone": "N. America",
+  "Casper, Wyoming": "N. America", "Minnipeg, Mantinoba": "N. America",
+  "Marquette, Michigan": "N. America", "Beatty, Nevada": "N. America",
+  "Nantucket, Massachusetts": "N. America", "L'ascension, Quebec": "N. America",
+  "Saint-Pierre, SPM": "N. America", "Orlando, Florida": "N. America",
+  "Charlotte, North Carolina": "N. America", "Edmonton, Alberta": "N. America",
+  "Lima, Peru": "S. America", "Quito, Ecuador": "S. America",
+  "Tierra Del Fuego": "S. America", "Nova Russas, Brazil": "S. America",
+  "Curico, Chile": "S. America", "San Miguel de Tucuman, Argentina": "S. America",
+  "Manaus, Brazil": "S. America", "Cochabamba, Bolivia": "S. America",
+  "Copenhagen, Denmark": "Europe", "Moscow, Russia": "Europe", "Nazare, Portugal": "Europe",
+  "Tallinn, Estonia": "Europe", "Arles, France": "Europe", "Visby, Sweden": "Europe",
+  "Istanbul, Turkey": "Europe", "Povegla, Italy": "Europe",
+  "Ceske Budejovice, Czechia": "Europe", "Castelo Branco, Portugal": "Europe",
+  "Velingrad, Bulgaria": "Europe", "Krasnador, Russia": "Europe",
+  "Kabul, Afghanistan": "Asia", "Lahore, Pakistan": "Asia",
+  "Seoul, South Korea": "Asia", "Tashkent, Uzbekistan": "Asia",
+  "Ankara, Turkey": "Asia", "Babylon, Iraq": "Asia", "Thane, India": "Asia",
+  "Tbilisi, Georgia": "Asia", "Male, Maldives": "Asia",
+  "Iturup, Russia": "Asia", "Arzamas, Russia": "Asia", "Baku, Azerbaijan": "Asia",
+  "Surat, India": "Asia", "Mosul, Iraq": "Asia", "Giresun, Turkey": "Asia",
+  "Antalya, Turkey": "Asia", "Pune, India": "Asia", "Hasik, Oman": "Asia",
+  "Vladivostok, Russia": "Asia", "Tacurong, Phillipines": "Asia",
+  "Kupang, Indonesia": "Asia",
+  "Cairns, Australia": "Oceania", "Lower Hutt, New Zealand": "Oceania",
+  "Heard Island, Australia": "Oceania", "Alofi, Niue": "Oceania",
+  "Okato, New Zealand": "Oceania", "Christchurch, New Zealand": "Oceania",
+  "Derby, Western Australia": "Oceania",
+  "Ile de la Possession, France": "Antarctica",
+};
+
+const CONTINENT_COLORS = {
+  "Africa": "#facc15", "N. America": "#60a5fa", "S. America": "#4ade80",
+  "Europe": "#f472b6", "Asia": "#f97316", "Oceania": "#22d3ee", "Antarctica": "#94a3b8",
+};
+
+// ============================================================
+// Stats panel
+// ============================================================
+const statsToggle = document.getElementById('stats-toggle');
+const statsPanel = document.getElementById('stats-panel');
+const statsContent = document.getElementById('stats-content');
+
+function closeStats() {
+  statsPanel.classList.remove('open');
+  statsToggle.classList.remove('open');
+}
+
+statsToggle.addEventListener('click', () => {
+  statsPanel.classList.toggle('open');
+  statsToggle.classList.toggle('open');
+  if (statsPanel.classList.contains('open')) updateStats();
+});
+
+document.getElementById('stats-close').addEventListener('click', closeStats);
+
+function updateStats() {
+  if (!locationData) return;
+  const stages = locationData.locations;
+  let total = 0;
+  const stageCounts = {};
+  const continentCounts = {};
+  const statusCounts = { confirmed: 0, plausible: 0, unconfirmed: 0 };
+
+  for (const [stage, locs] of Object.entries(stages)) {
+    stageCounts[stage] = locs.length;
+    total += locs.length;
+    for (const loc of locs) {
+      statusCounts[loc.status] = (statusCounts[loc.status] || 0) + 1;
+      const continent = CONTINENTS[loc.location] || 'Unknown';
+      continentCounts[continent] = (continentCounts[continent] || 0) + 1;
+    }
+  }
+
+  const sortedContinents = Object.entries(continentCounts).sort((a, b) => b[1] - a[1]);
+  const maxContinent = sortedContinents.length ? sortedContinents[0][1] : 1;
+
+  // Build stats DOM safely
+  statsContent.textContent = '';
+
+  function makeSection(title) {
+    const sec = document.createElement('div');
+    sec.className = 'stats-section';
+    const h = document.createElement('h4');
+    h.textContent = title;
+    sec.appendChild(h);
+    statsContent.appendChild(sec);
+    return sec;
+  }
+  function addStatRow(parent, label, value) {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    const l = document.createElement('span');
+    l.className = 'stat-label';
+    l.textContent = label;
+    const v = document.createElement('span');
+    v.className = 'stat-value';
+    v.textContent = value;
+    row.appendChild(l);
+    row.appendChild(v);
+    parent.appendChild(row);
+  }
+  function addBarRow(parent, label, value, pct, color, capitalize) {
+    const row = document.createElement('div');
+    row.className = 'stat-row-bar';
+    const l = document.createElement('span');
+    l.className = 'stat-label';
+    l.textContent = label;
+    if (capitalize) l.style.textTransform = 'capitalize';
+    const wrap = document.createElement('div');
+    wrap.className = 'stat-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = 'stat-bar';
+    bar.style.width = pct + '%';
+    bar.style.background = color;
+    wrap.appendChild(bar);
+    const v = document.createElement('span');
+    v.className = 'stat-value';
+    v.textContent = value;
+    row.appendChild(l);
+    row.appendChild(wrap);
+    row.appendChild(v);
+    parent.appendChild(row);
+  }
+
+  // Overview
+  const overview = makeSection('Overview');
+  addStatRow(overview, 'Total locations', total);
+  addStatRow(overview, 'Arrows drawn', arrows.length);
+
+  // By Stage
+  const byStageSec = makeSection('By Stage');
+  for (const [stage, count] of Object.entries(stageCounts)) {
+    const pct = Math.round(count / total * 100);
+    const color = STAGE_COLORS[stage] || '#60a5fa';
+    addBarRow(byStageSec, stage.replace('stage', 'Stage '), count, pct, color, false);
+  }
+
+  // By Status
+  const byStatusSec = makeSection('By Status');
+  for (const [status, count] of Object.entries(statusCounts)) {
+    const pct = Math.round(count / total * 100);
+    const color = STATUS_COLORS[status] || '#94a3b8';
+    addBarRow(byStatusSec, status, count, pct, color, true);
+  }
+
+  // By Continent
+  const byContSec = makeSection('By Continent');
+  for (const [continent, count] of sortedContinents) {
+    const pct = Math.round(count / maxContinent * 100);
+    const color = CONTINENT_COLORS[continent] || '#94a3b8';
+    addBarRow(byContSec, continent, count, pct, color, false);
+  }
+}
 
 // ============================================================
 // Init
