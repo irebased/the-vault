@@ -171,6 +171,8 @@
     .stats-toggle.open { right: 0; }
     .stats-panel { width: 100vw; right: -100vw; }
     .stats-close { display: block; }
+    body.stats-open .legend { display: none; }
+    body.stats-open .stats-toggle { display: none; }
   }
   .stats-section { margin-bottom: 20px; }
   .stats-section h4 { color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
@@ -930,11 +932,13 @@ const statsContent = document.getElementById('stats-content');
 function closeStats() {
   statsPanel.classList.remove('open');
   statsToggle.classList.remove('open');
+  document.body.classList.remove('stats-open');
 }
 
 statsToggle.addEventListener('click', () => {
   statsPanel.classList.toggle('open');
   statsToggle.classList.toggle('open');
+  document.body.classList.toggle('stats-open');
   if (statsPanel.classList.contains('open')) updateStats();
 });
 
