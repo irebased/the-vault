@@ -1,0 +1,6 @@
+
+{
+    "confirmed": "#00ff00",
+    "plausible": "#0000ff",
+    "unconfirmed": "#ff0000"
+}

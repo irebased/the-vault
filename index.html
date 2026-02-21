@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Vault - World Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; }
+  #map { width: 100vw; height: 100vh; }
+
+  /* Toolbar */
+  .toolbar {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 1000; display: flex; gap: 8px; background: #16213e;
+    padding: 8px 16px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 1px solid #0f3460; align-items: center;
+  }
+  .toolbar button {
+    background: #0f3460; color: #e0e0e0; border: 1px solid #1a1a4e;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .toolbar button:hover { background: #1a4a8a; }
+  .toolbar button.active { background: #e94560; border-color: #e94560; color: #fff; }
+  .toolbar .sep { width: 1px; height: 24px; background: #0f3460; }
+  .toolbar .status { color: #888; font-size: 12px; margin-left: 4px; }
+
+  /* Legend */
+  .legend {
+    position: fixed; bottom: 24px; left: 12px; z-index: 1000;
+    background: #16213e; padding: 12px 16px; border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #0f3460;
+    color: #ccc; font-size: 12px;
+  }
+  .legend h4 { margin-bottom: 6px; color: #e0e0e0; font-size: 13px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Arrow note popover */
+  .arrow-popover {
+    position: fixed; z-index: 2000; background: #16213e; color: #e0e0e0;
+    padding: 10px 14px; border-radius: 8px; border: 1px solid #0f3460;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6); font-size: 13px;
+    max-width: 300px; pointer-events: none; display: none;
+  }
+  .arrow-popover .label { color: #888; font-size: 11px; margin-bottom: 2px; }
+  .arrow-popover .note { white-space: pre-wrap; }
+
+  /* Color context menu */
+  .color-menu {
+    position: fixed; z-index: 3000; background: #16213e;
+    padding: 10px; border-radius: 10px; border: 1px solid #0f3460;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: none;
+  }
+  .color-menu .colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+  .color-swatch {
+    width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+    border: 2px solid transparent; transition: all 0.15s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: #fff; }
+  .color-menu .actions { display: flex; gap: 6px; }
+  .color-menu .actions button {
+    flex: 1; padding: 5px 8px; border-radius: 5px; border: 1px solid #0f3460;
+    background: #0f3460; color: #e0e0e0; cursor: pointer; font-size: 12px;
+  }
+  .color-menu .actions button:hover { background: #1a4a8a; }
+  .color-menu .actions button.danger { background: #8b0000; border-color: #a00; }
+  .color-menu .actions button.danger:hover { background: #b00; }
+
+  /* Note editor */
+  .note-editor {
+    position: fixed; z-index: 3000; background: #16213e;
+    padding: 14px; border-radius: 10px; border: 1px solid #0f3460;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: none; width: 300px;
+  }
+  .note-editor h4 { color: #e0e0e0; margin-bottom: 8px; font-size: 13px; }
+  .note-editor textarea {
+    width: 100%; height: 80px; background: #0a0a1a; color: #e0e0e0;
+    border: 1px solid #0f3460; border-radius: 6px; padding: 8px;
+    font-size: 13px; resize: vertical; font-family: inherit;
+  }
+  .note-editor .btns { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+  .note-editor .btns button {
+    padding: 5px 12px; border-radius: 5px; border: 1px solid #0f3460;
+    background: #0f3460; color: #e0e0e0; cursor: pointer; font-size: 12px;
+  }
+  .note-editor .btns button:hover { background: #1a4a8a; }
+  .note-editor .btns button.primary { background: #e94560; border-color: #e94560; }
+
+  /* Import/Export modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 4000;
+    display: none; justify-content: center; align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #16213e; padding: 20px; border-radius: 12px;
+    border: 1px solid #0f3460; box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+    width: 500px; max-width: 90vw; color: #e0e0e0;
+  }
+  .modal h3 { margin-bottom: 12px; }
+  .modal textarea {
+    width: 100%; height: 160px; background: #0a0a1a; color: #e0e0e0;
+    border: 1px solid #0f3460; border-radius: 6px; padding: 10px;
+    font-size: 12px; font-family: monospace; resize: vertical;
+  }
+  .modal .btns { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+  .modal .btns button {
+    padding: 6px 16px; border-radius: 6px; border: 1px solid #0f3460;
+    background: #0f3460; color: #e0e0e0; cursor: pointer; font-size: 13px;
+  }
+  .modal .btns button:hover { background: #1a4a8a; }
+  .modal .btns button.primary { background: #e94560; border-color: #e94560; }
+  .modal .msg { font-size: 12px; color: #888; margin-top: 8px; }
+
+  /* Custom marker styles */
+  .marker-dot {
+    border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    transition: transform 0.15s;
+  }
+  .marker-dot:hover { transform: scale(1.3); }
+  .marker-dot.arrow-mode { cursor: crosshair !important; }
+  .marker-dot.selected { border-color: #e94560; box-shadow: 0 0 12px #e94560; }
+
+  .leaflet-container { background: #1a1a2e; }
+
+  /* Stage tab styling */
+  .stage-tabs {
+    position: fixed; top: 12px; right: 12px; z-index: 1000;
+    display: flex; gap: 4px; background: #16213e;
+    padding: 4px; border-radius: 8px; border: 1px solid #0f3460;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .stage-tab {
+    padding: 5px 12px; border-radius: 6px; border: none;
+    background: transparent; color: #888; cursor: pointer; font-size: 12px;
+  }
+  .stage-tab.active { background: #0f3460; color: #e0e0e0; }
+  .stage-tab:hover { color: #e0e0e0; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <button id="btn-arrow" title="Draw arrows between locations">Draw Arrow</button>
+  <div class="sep"></div>
+  <button id="btn-export" title="Export map data">Export</button>
+  <button id="btn-import" title="Import map data">Import</button>
+  <div class="sep"></div>
+  <button id="btn-clear" title="Clear all arrows">Clear All</button>
+  <span id="status" class="status"></span>
+</div>
+
+<!-- Stage tabs -->
+<div class="stage-tabs">
+  <button class="stage-tab active" data-stage="all">All</button>
+  <button class="stage-tab" data-stage="stage1">Stage 1</button>
+  <button class="stage-tab" data-stage="stage2">Stage 2</button>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <h4>Status</h4>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Confirmed</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#facc15"></div> Plausible</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Unconfirmed</div>
+  <h4 style="margin-top:8px">Stages</h4>
+  <div class="legend-item"><div class="legend-dot" style="background:#60a5fa; width:8px; height:8px; border: 2px solid #93c5fd"></div> Stage 1</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c084fc; width:8px; height:8px; border: 2px solid #d8b4fe"></div> Stage 2</div>
+</div>
+
+<!-- Arrow popover -->
+<div id="arrow-popover" class="arrow-popover">
+  <div class="label" id="popover-label"></div>
+  <div class="note" id="popover-note"></div>
+</div>
+
+<!-- Color context menu -->
+<div id="color-menu" class="color-menu">
+  <div class="colors" id="color-swatches"></div>
+  <div class="actions">
+    <button id="btn-edit-note">Edit Note</button>
+    <button id="btn-delete-arrow" class="danger">Delete</button>
+  </div>
+</div>
+
+<!-- Note editor -->
+<div id="note-editor" class="note-editor">
+  <h4 id="note-editor-title">Arrow Note</h4>
+  <textarea id="note-textarea" placeholder="Enter a note for this arrow..."></textarea>
+  <div class="btns">
+    <button id="btn-note-cancel">Cancel</button>
+    <button id="btn-note-save" class="primary">Save</button>
+  </div>
+</div>
+
+<!-- Import/Export modal -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Export</h3>
+    <textarea id="modal-textarea" placeholder="Paste map data here..."></textarea>
+    <div class="msg" id="modal-msg"></div>
+    <div class="btns">
+      <button id="btn-modal-cancel">Cancel</button>
+      <button id="btn-modal-action" class="primary">Copy</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ============================================================
+// Coordinate database for all locations
+// ============================================================
+const COORDS = {
+  "Accra, Ghana": [5.6037, -0.1870],
+  "Algiers, Algeria": [36.7538, 3.0588],
+  "Buffalo, New York": [42.8864, -78.8784],
+  "Cairo, Egypt": [30.0444, 31.2357],
+  "Casablanca, Morocco": [33.5731, -7.5898],
+  "Copenhagen, Denmark": [55.6761, 12.5683],
+  "DeKalb, Illinois": [41.9295, -88.7503],
+  "Dimtu, Ethiopia": [5.65, 36.55],
+  "Divo, Cote d'Ivore": [5.8372, -5.3601],
+  "Georgetown, Ascension Island": [-7.9289, -14.4101],
+  "Heard Island, Australia": [-53.1, 73.5],
+  "Ile de la Possession, France": [-46.4167, 51.75],
+  "Iturup, Russia": [45.15, 148.0],
+  "Kabul, Afghanistan": [34.5553, 69.2075],
+  "Kupang, Indonesia": [-10.1772, 123.607],
+  "Lahore, Pakistan": [31.5204, 74.3587],
+  "Lima, Peru": [-12.0464, -77.0428],
+  "Lower Hutt, New Zealand": [-41.2127, 174.912],
+  "Maputo, Mozambique": [-25.9692, 32.5732],
+  "Montreal, Quebec": [45.5017, -73.5673],
+  "Moscow, Russia": [55.7558, 37.6173],
+  "Nazare, Portugal": [39.6017, -9.0713],
+  "Nome, Alaska": [64.5011, -165.4064],
+  "Cairns, Australia": [-16.9186, 145.7781],
+  "Quito, Ecuador": [-0.1807, -78.4678],
+  "Seoul, South Korea": [37.5665, 126.978],
+  "Tampa Bay, Florida": [27.9506, -82.4572],
+  "Tashkent, Uzbekistan": [41.2995, 69.2401],
+  "Tierra Del Fuego": [-54.3, -69.0],
+  "Tijuana, Mexico": [32.5149, -117.0382],
+  "Toad Suck, Arkansas": [35.0882, -92.5799],
+  "Wichita, Kansas": [37.6872, -97.3301],
+  "Yellowknife, Northwest Territories, Canada": [62.454, -114.3718],
+  "Ankara, Turkey": [39.9334, 32.8597],
+  "Babylon, Iraq": [32.5422, 44.421],
+  "Tallinn, Estonia": [59.437, 24.7536],
+  "Thane, India": [19.2183, 72.9781],
+  "Arles, France": [43.6768, 4.6299],
+  "New Orleans, Louisiana": [29.9511, -90.0715],
+  "Male, Maldives": [4.1755, 73.5093],
+  "Alofi, Niue": [-19.059, -169.9175],
+  "Tbilisi, Georgia": [41.7151, 44.8271],
+  "Yellowstone": [44.428, -110.5885],
+  "Casper, Wyoming": [42.8666, -106.3131],
+  "Arzamas, Russia": [55.3889, 43.8144],
+  "Maiduguri, Nigeria": [11.8311, 13.151],
+  "Baku, Azerbaijan": [40.4093, 49.8671],
+  "Minnipeg, Mantinoba": [49.8951, -97.1384],
+  "Surat, India": [21.1702, 72.8311],
+  "Marquette, Michigan": [46.5436, -87.3954],
+  "Beatty, Nevada": [36.9086, -116.7592],
+  "Mosul, Iraq": [36.335, 43.1189],
+  "Visby, Sweden": [57.6348, 18.2948],
+  "Istanbul, Turkey": [41.0082, 28.9784],
+  "Nantucket, Massachusetts": [41.2835, -70.0995],
+  "Povegla, Italy": [45.3831, 12.3309],
+  "Giresun, Turkey": [40.9128, 38.3895],
+  "L'ascension, Quebec": [46.6833, -73.6833],
+  "Okato, New Zealand": [-39.2019, 173.875],
+  "Nova Russas, Brazil": [-4.7089, -40.5639],
+  "Ceske Budejovice, Czechia": [48.9745, 14.4746],
+  "Christchurch, New Zealand": [-43.5321, 172.6362],
+  "Castelo Branco, Portugal": [39.8233, -7.4922],
+  "Sokode, Togo": [8.9833, 1.1333],
+  "Curico, Chile": [-34.9833, -71.2333],
+  "Monkey Bay, Malawi": [-14.0833, 34.9167],
+  "Antalya, Turkey": [36.8969, 30.7133],
+  "Ambanja, Madegascar": [-13.6833, 48.45],
+  "Saint-Pierre, SPM": [46.7823, -56.1773],
+  "Krasnador, Russia": [45.0353, 38.9753],
+  "San Miguel de Tucuman, Argentina": [-26.8083, -65.2176],
+  "Derby, Western Australia": [-17.3088, 123.6277],
+  "Manaus, Brazil": [-3.119, -60.0217],
+  "Pune, India": [18.5204, 73.8567],
+  "Hasik, Oman": [17.4167, 55.6833],
+  "Velingrad, Bulgaria": [42.0274, 23.991],
+  "Marrakesh, Morocco": [31.6295, -7.9811],
+  "Orlando, Florida": [28.5383, -81.3792],
+  "Charlotte, North Carolina": [35.2271, -80.8431],
+  "Edmonton, Alberta": [53.5461, -113.4938],
+  "Vladivostok, Russia": [43.1155, 131.8855],
+  "Cochabamba, Bolivia": [-17.3895, -66.1568],
+  "Tacurong, Phillipines": [6.6928, 124.6789],
+};
+
+// ============================================================
+// App State
+// ============================================================
+const STORAGE_KEY = 'vault-map-data';
+const COLORS = [
+  '#e94560', '#f97316', '#facc15', '#4ade80', '#22d3ee',
+  '#60a5fa', '#a78bfa', '#f472b6', '#ffffff', '#94a3b8',
+];
+const STATUS_COLORS = { confirmed: '#4ade80', plausible: '#facc15', unconfirmed: '#f87171' };
+const STAGE_COLORS = { stage1: '#60a5fa', stage2: '#c084fc' };
+
+let locationData = null;
+let arrowMode = false;
+let arrowFrom = null; // location key
+let arrows = []; // {id, from, to, note, color}
+let arrowLayers = {}; // id -> [{line, head, hitLine}, ...] (one per world copy)
+let markerMap = {}; // location key -> [marker, marker, marker] (3 world copies)
+let locationStage = {}; // location key -> stage
+let activeStage = 'all';
+let contextArrowId = null;
+let nextArrowId = 1;
+
+// ============================================================
+// Map setup
+// ============================================================
+const map = L.map('map', {
+  center: [20, 0],
+  zoom: 3,
+  minZoom: 2,
+  maxZoom: 10,
+  worldCopyJump: true,
+  zoomControl: false,
+});
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19,
+  noWrap: false,
+}).addTo(map);
+
+// ============================================================
+// Load locations
+// ============================================================
+async function loadLocations() {
+  try {
+    const resp = await fetch('locations.json');
+    locationData = await resp.json();
+    placeMarkers();
+    loadState();
+  } catch (e) {
+    console.error('Failed to load locations.json', e);
+  }
+}
+
+const WORLD_COPIES = [-360, 0, 360];
+
+function placeMarkers() {
+  const stages = locationData.locations;
+  for (const [stage, locs] of Object.entries(stages)) {
+    for (const loc of locs) {
+      const coords = COORDS[loc.location];
+      if (!coords) { console.warn('No coords for', loc.location); continue; }
+      const color = STATUS_COLORS[loc.status] || '#94a3b8';
+      const stageColor = STAGE_COLORS[stage] || '#60a5fa';
+      const markers = [];
+      for (const offset of WORLD_COPIES) {
+        const marker = L.marker([coords[0], coords[1] + offset], {
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="marker-dot" style="width:12px;height:12px;background:${color};border-color:${stageColor}" data-loc="${loc.location}" data-stage="${stage}"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+          }),
+          title: loc.location,
+        });
+        marker.bindTooltip(loc.location, { direction: 'top', offset: [0, -8] });
+        marker.on('click', () => onMarkerClick(loc.location));
+        marker.addTo(map);
+        marker._vaultStage = stage;
+        marker._vaultLocation = loc.location;
+        markers.push(marker);
+      }
+      markerMap[loc.location] = markers;
+      locationStage[loc.location] = stage;
+    }
+  }
+}
+
+// ============================================================
+// Arrow drawing
+// ============================================================
+function onMarkerClick(locKey) {
+  if (!arrowMode) return;
+  if (!arrowFrom) {
+    arrowFrom = locKey;
+    setStatus(`From: ${locKey} — click destination`);
+    highlightMarker(locKey, true);
+  } else if (arrowFrom !== locKey) {
+    createArrow(arrowFrom, locKey, '', '#e94560');
+    highlightMarker(arrowFrom, false);
+    arrowFrom = null;
+    setStatus('Arrow created. Click another pair or toggle off.');
+    saveState();
+  }
+}
+
+function createArrow(from, to, note, color) {
+  const id = 'a' + (nextArrowId++);
+  const arrow = { id, from, to, note: note || '', color: color || '#e94560' };
+  arrows.push(arrow);
+  renderArrow(arrow);
+  return arrow;
+}
+
+function renderArrow(arrow) {
+  const fromCoords = COORDS[arrow.from];
+  const toCoords = COORDS[arrow.to];
+  if (!fromCoords || !toCoords) return;
+
+  // Pick the shorter path across the antimeridian
+  let toLng = toCoords[1];
+  const diff = toLng - fromCoords[1];
+  if (Math.abs(diff) > 180) {
+    toLng = diff > 0 ? toLng - 360 : toLng + 360;
+  }
+
+  const copies = [];
+  for (const offset of WORLD_COPIES) {
+    const from = L.latLng(fromCoords[0], fromCoords[1] + offset);
+    const to = L.latLng(toCoords[0], toLng + offset);
+
+    const dx = to.lng - from.lng;
+    const dy = to.lat - from.lat;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const shorten = Math.min(1.5, dist * 0.08);
+    const ratio = (dist - shorten) / dist;
+    const endLat = from.lat + dy * ratio;
+    const endLng = from.lng + dx * ratio;
+
+    const line = L.polyline([[from.lat, from.lng], [endLat, endLng]], {
+      color: arrow.color, weight: 2.5, opacity: 0.85,
+    }).addTo(map);
+
+    const angle = Math.atan2(dy, dx);
+    const headLen = Math.min(2.5, dist * 0.12);
+    const a1 = angle + Math.PI * 0.82;
+    const a2 = angle - Math.PI * 0.82;
+    const head = L.polyline([
+      [endLat + headLen * Math.sin(a1), endLng + headLen * Math.cos(a1)],
+      [endLat, endLng],
+      [endLat + headLen * Math.sin(a2), endLng + headLen * Math.cos(a2)],
+    ], { color: arrow.color, weight: 2.5, opacity: 0.85 }).addTo(map);
+
+    const hitLine = L.polyline([[from.lat, from.lng], [endLat, endLng]], {
+      color: 'transparent', weight: 16, opacity: 0,
+    }).addTo(map);
+
+    hitLine.on('mouseover', (e) => showPopover(arrow, e));
+    hitLine.on('mousemove', (e) => movePopover(e));
+    hitLine.on('mouseout', () => hidePopover());
+    hitLine.on('contextmenu', (e) => { e.originalEvent.preventDefault(); showColorMenu(arrow, e); });
+    line.on('contextmenu', (e) => { e.originalEvent.preventDefault(); showColorMenu(arrow, e); });
+    head.on('contextmenu', (e) => { e.originalEvent.preventDefault(); showColorMenu(arrow, e); });
+
+    copies.push({ line, head, hitLine });
+  }
+  arrowLayers[arrow.id] = copies;
+}
+
+function removeArrowLayer(id) {
+  const copies = arrowLayers[id];
+  if (copies) {
+    for (const layers of copies) {
+      map.removeLayer(layers.line);
+      map.removeLayer(layers.head);
+      map.removeLayer(layers.hitLine);
+    }
+    delete arrowLayers[id];
+  }
+}
+
+function rerenderArrow(arrow) {
+  removeArrowLayer(arrow.id);
+  renderArrow(arrow);
+}
+
+function rerenderAllArrows() {
+  for (const id of Object.keys(arrowLayers)) removeArrowLayer(id);
+  for (const arrow of arrows) renderArrow(arrow);
+}
+
+// ============================================================
+// Popover
+// ============================================================
+const popoverEl = document.getElementById('arrow-popover');
+const popoverLabel = document.getElementById('popover-label');
+const popoverNote = document.getElementById('popover-note');
+
+function showPopover(arrow, e) {
+  popoverLabel.textContent = `${arrow.from}  →  ${arrow.to}`;
+  popoverNote.textContent = arrow.note || '(no note)';
+  popoverEl.style.display = 'block';
+  movePopover(e);
+}
+function movePopover(e) {
+  popoverEl.style.left = (e.originalEvent.clientX + 14) + 'px';
+  popoverEl.style.top = (e.originalEvent.clientY + 14) + 'px';
+}
+function hidePopover() {
+  popoverEl.style.display = 'none';
+}
+
+// ============================================================
+// Color context menu
+// ============================================================
+const colorMenu = document.getElementById('color-menu');
+const swatchContainer = document.getElementById('color-swatches');
+
+// Build swatches
+COLORS.forEach(c => {
+  const el = document.createElement('div');
+  el.className = 'color-swatch';
+  el.style.background = c;
+  el.dataset.color = c;
+  el.addEventListener('click', () => {
+    if (!contextArrowId) return;
+    const arrow = arrows.find(a => a.id === contextArrowId);
+    if (arrow) {
+      arrow.color = c;
+      rerenderArrow(arrow);
+      saveState();
+    }
+    // Update selected state
+    swatchContainer.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+  swatchContainer.appendChild(el);
+});
+
+function showColorMenu(arrow, e) {
+  contextArrowId = arrow.id;
+  hidePopover();
+  colorMenu.style.display = 'block';
+  colorMenu.style.left = e.originalEvent.clientX + 'px';
+  colorMenu.style.top = e.originalEvent.clientY + 'px';
+  // Highlight current color
+  swatchContainer.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.toggle('selected', s.dataset.color === arrow.color);
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if (!colorMenu.contains(e.target)) colorMenu.style.display = 'none';
+});
+
+document.getElementById('btn-edit-note').addEventListener('click', () => {
+  colorMenu.style.display = 'none';
+  showNoteEditor(contextArrowId);
+});
+
+document.getElementById('btn-delete-arrow').addEventListener('click', () => {
+  colorMenu.style.display = 'none';
+  if (contextArrowId) {
+    removeArrowLayer(contextArrowId);
+    arrows = arrows.filter(a => a.id !== contextArrowId);
+    contextArrowId = null;
+    saveState();
+  }
+});
+
+// ============================================================
+// Note editor
+// ============================================================
+const noteEditor = document.getElementById('note-editor');
+const noteTextarea = document.getElementById('note-textarea');
+const noteTitle = document.getElementById('note-editor-title');
+let editingArrowId = null;
+
+function showNoteEditor(arrowId) {
+  const arrow = arrows.find(a => a.id === arrowId);
+  if (!arrow) return;
+  editingArrowId = arrowId;
+  noteTitle.textContent = `${arrow.from} → ${arrow.to}`;
+  noteTextarea.value = arrow.note || '';
+  noteEditor.style.display = 'block';
+  // Position near center of screen
+  noteEditor.style.left = '50%';
+  noteEditor.style.top = '50%';
+  noteEditor.style.transform = 'translate(-50%, -50%)';
+  noteTextarea.focus();
+}
+
+document.getElementById('btn-note-cancel').addEventListener('click', () => {
+  noteEditor.style.display = 'none';
+  editingArrowId = null;
+});
+document.getElementById('btn-note-save').addEventListener('click', () => {
+  if (editingArrowId) {
+    const arrow = arrows.find(a => a.id === editingArrowId);
+    if (arrow) {
+      arrow.note = noteTextarea.value;
+      saveState();
+    }
+  }
+  noteEditor.style.display = 'none';
+  editingArrowId = null;
+});
+
+// ============================================================
+// Toolbar
+// ============================================================
+const btnArrow = document.getElementById('btn-arrow');
+const statusEl = document.getElementById('status');
+
+btnArrow.addEventListener('click', () => {
+  arrowMode = !arrowMode;
+  btnArrow.classList.toggle('active', arrowMode);
+  if (!arrowMode) {
+    if (arrowFrom) highlightMarker(arrowFrom, false);
+    arrowFrom = null;
+    setStatus('');
+  } else {
+    setStatus('Click a location to start an arrow');
+  }
+  // Toggle crosshair cursor on markers
+  document.querySelectorAll('.marker-dot').forEach(el => {
+    el.classList.toggle('arrow-mode', arrowMode);
+  });
+});
+
+function setStatus(msg) {
+  statusEl.textContent = msg;
+}
+
+function highlightMarker(locKey, on) {
+  const markers = markerMap[locKey];
+  if (markers) {
+    for (const marker of markers) {
+      const el = marker.getElement();
+      if (el) {
+        const dot = el.querySelector('.marker-dot');
+        if (dot) dot.classList.toggle('selected', on);
+      }
+    }
+  }
+}
+
+// Clear all
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (!confirm('Delete all arrows? This cannot be undone.')) return;
+  for (const id of Object.keys(arrowLayers)) removeArrowLayer(id);
+  arrows = [];
+  saveState();
+  setStatus('All arrows cleared');
+});
+
+// ============================================================
+// Stage tabs
+// ============================================================
+document.querySelectorAll('.stage-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.stage-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeStage = tab.dataset.stage;
+    filterMarkers();
+  });
+});
+
+function filterMarkers() {
+  for (const [key, markers] of Object.entries(markerMap)) {
+    const show = activeStage === 'all' || markers[0]._vaultStage === activeStage;
+    for (const marker of markers) {
+      const el = marker.getElement();
+      if (el) el.style.display = show ? '' : 'none';
+    }
+  }
+  // Show/hide arrows: only show if both endpoints belong to the active stage
+  for (const arrow of arrows) {
+    const copies = arrowLayers[arrow.id];
+    if (!copies) continue;
+    const fromStage = locationStage[arrow.from];
+    const toStage = locationStage[arrow.to];
+    const show = activeStage === 'all' ||
+      (fromStage === activeStage && toStage === activeStage);
+    for (const layers of copies) {
+      if (show && !map.hasLayer(layers.line)) {
+        layers.line.addTo(map);
+        layers.head.addTo(map);
+        layers.hitLine.addTo(map);
+      } else if (!show && map.hasLayer(layers.line)) {
+        layers.line.removeFrom(map);
+        layers.head.removeFrom(map);
+        layers.hitLine.removeFrom(map);
+      }
+    }
+  }
+}
+
+// ============================================================
+// Import / Export
+// ============================================================
+const modalOverlay = document.getElementById('modal-overlay');
+const modalTitle = document.getElementById('modal-title');
+const modalTextarea = document.getElementById('modal-textarea');
+const modalMsg = document.getElementById('modal-msg');
+const btnModalAction = document.getElementById('btn-modal-action');
+let modalMode = 'export';
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  modalMode = 'export';
+  modalTitle.textContent = 'Export Map Data';
+  const data = JSON.stringify({ arrows, version: 1 });
+  const encoded = btoa(unescape(encodeURIComponent(data)));
+  modalTextarea.value = encoded;
+  modalTextarea.readOnly = true;
+  btnModalAction.textContent = 'Copy to Clipboard';
+  modalMsg.textContent = 'Share this text with others to let them import your map.';
+  modalOverlay.classList.add('open');
+});
+
+document.getElementById('btn-import').addEventListener('click', () => {
+  modalMode = 'import';
+  modalTitle.textContent = 'Import Map Data';
+  modalTextarea.value = '';
+  modalTextarea.readOnly = false;
+  btnModalAction.textContent = 'Import';
+  modalMsg.textContent = 'Paste exported map data here. This will replace your current arrows.';
+  modalOverlay.classList.add('open');
+  modalTextarea.focus();
+});
+
+document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+  modalOverlay.classList.remove('open');
+});
+
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+});
+
+btnModalAction.addEventListener('click', () => {
+  if (modalMode === 'export') {
+    navigator.clipboard.writeText(modalTextarea.value).then(() => {
+      modalMsg.textContent = 'Copied!';
+      setTimeout(() => modalOverlay.classList.remove('open'), 600);
+    });
+  } else {
+    try {
+      const raw = decodeURIComponent(escape(atob(modalTextarea.value.trim())));
+      const data = JSON.parse(raw);
+      if (!data.arrows || !Array.isArray(data.arrows)) throw new Error('Invalid format');
+      // Clear existing
+      for (const id of Object.keys(arrowLayers)) removeArrowLayer(id);
+      arrows = [];
+      nextArrowId = 1;
+      // Import
+      for (const a of data.arrows) {
+        const arrow = { id: 'a' + (nextArrowId++), from: a.from, to: a.to, note: a.note || '', color: a.color || '#e94560' };
+        arrows.push(arrow);
+        renderArrow(arrow);
+      }
+      saveState();
+      modalMsg.textContent = `Imported ${data.arrows.length} arrows!`;
+      setTimeout(() => modalOverlay.classList.remove('open'), 800);
+    } catch (e) {
+      modalMsg.textContent = 'Error: invalid data. Make sure you pasted the full export string.';
+    }
+  }
+});
+
+// ============================================================
+// LocalStorage persistence
+// ============================================================
+function saveState() {
+  const data = { arrows, nextArrowId, version: 1 };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.arrows) {
+      nextArrowId = data.nextArrowId || 1;
+      for (const a of data.arrows) {
+        const arrow = { id: a.id || ('a' + (nextArrowId++)), from: a.from, to: a.to, note: a.note || '', color: a.color || '#e94560' };
+        arrows.push(arrow);
+        renderArrow(arrow);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load state', e);
+  }
+}
+
+// ============================================================
+// Keyboard shortcuts
+// ============================================================
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (noteEditor.style.display === 'block') { noteEditor.style.display = 'none'; return; }
+    if (modalOverlay.classList.contains('open')) { modalOverlay.classList.remove('open'); return; }
+    if (colorMenu.style.display === 'block') { colorMenu.style.display = 'none'; return; }
+    if (arrowMode) { btnArrow.click(); return; }
+  }
+});
+
+// ============================================================
+// Init
+// ============================================================
+loadLocations();
+</script>
+</body>
+</html>

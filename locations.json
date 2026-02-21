@@ -1,0 +1,545 @@
+{
+    "locations": {
+        "stage1": [
+            {
+                "location": "Accra, Ghana",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Algiers, Algeria",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Buffalo, New York",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Cairo, Egypt",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Casablanca, Morocco",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Copenhagen, Denmark",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "DeKalb, Illinois",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Dimtu, Ethiopia",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Divo, Cote d'Ivore",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Georgetown, Ascension Island",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Heard Island, Australia",
+                "status": "plausible",
+                "sources": ["1m-write-up"]
+            },
+            {
+                "location": "Ile de la Possession, France",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Iturup, Russia",
+                "status": "plausible",
+                "sources": [
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Kabul, Afghanistan",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Kupang, Indonesia",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Lahore, Pakistan",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Lima, Peru",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Lower Hutt, New Zealand",
+                "status": "plausible",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Maputo, Mozambique",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Montreal, Quebec",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Moscow, Russia",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Nazare, Portugal",
+                "status": "plausible",
+                "sources": [
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Nome, Alaska",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Cairns, Australia",
+                "status": "plausible",
+                "sources": [
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Quito, Ecuador",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Seoul, South Korea",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Tampa Bay, Florida",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Tashkent, Uzbekistan",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Tierra Del Fuego",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Tijuana, Mexico",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Toad Suck, Arkansas",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Wichita, Kansas",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Yellowknife, Northwest Territories, Canada",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Ankara, Turkey",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Babylon, Iraq",
+                "status": "plausible",
+                "sources": [
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Tallinn, Estonia",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Thane, India",
+                "status": "plausible",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "Arles, France",
+                "status": "confirmed",
+                "sources": [
+                    "delfinadap",
+                    "1m-write-up"
+                ]
+            },
+            {
+                "location": "New Orleans, Louisiana",
+                "status": "unconfirmed",
+                "sources": [
+                    "delfinadap"
+                ]
+            },
+            {
+                "location": "Male, Maldives",
+                "status": "plausible",
+                "sources": [
+                    "delfinadap"
+                ]
+            },
+            {
+                "location": "Alofi, Niue",
+                "status": "unconfirmed",
+                "sources": [
+                    "delfinadap"
+                ]
+            },
+            {
+                "location": "Tbilisi, Georgia",
+                "status": "plausible",
+                "sources": [
+                    "delfinadap"
+                ]
+            },
+            {
+                "location": "Yellowstone",
+                "status": "unconfirmed",
+                "sources": [
+                    "delfinadap"
+                ]
+            }
+
+        ],
+        "stage2": [
+            {
+                "location": "Casper, Wyoming",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Arzamas, Russia",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Maiduguri, Nigeria",
+                "status": "unconfirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Baku, Azerbaijan",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Minnipeg, Mantinoba",
+                "status": "unconfirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Surat, India",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Marquette, Michigan",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Beatty, Nevada",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Mosul, Iraq",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Visby, Sweden",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Istanbul, Turkey",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Nantucket, Massachusetts",
+                "status": "unconfirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Povegla, Italy",
+                "status": "unconfirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Giresun, Turkey",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "L'ascension, Quebec",
+                "status": "unconfirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Okato, New Zealand",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Nova Russas, Brazil",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Ceske Budejovice, Czechia",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Christchurch, New Zealand",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Castelo Branco, Portugal",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Sokode, Togo",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Curico, Chile",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Monkey Bay, Malawi",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Antalya, Turkey",
+                "status": "plausible",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Ambanja, Madegascar",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Saint-Pierre, SPM",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Krasnador, Russia",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "San Miguel de Tucuman, Argentina",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Derby, Western Australia",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Manaus, Brazil",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Pune, India",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Hasik, Oman",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Velingrad, Bulgaria",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Marrakesh, Morocco",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Orlando, Florida",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Charlotte, North Carolina",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Edmonton, Alberta",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Vladivostok, Russia",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Cochabamba, Bolivia",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Tacurong, Phillipines",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            }
+        ]
+    },
+    "sources": {
+            "delfinadap": "https://delfinadap.github.io/mrbeast-51-locations/boat-grid.html#full-grid-91-rows",
+            "1m-write-up": "https://docs.google.com/document/d/1svEYBKoLsSNOBL6WHf9M7jB5_Awtq7QT-ZJot7YyhQY/edit?tab=t.rhiwzexb8g9z"
+    }
+}
