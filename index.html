@@ -430,7 +430,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 // ============================================================
 async function loadLocations() {
   try {
-    const resp = await fetch('locations.json');
+    const resp = await fetch('locations.json?v=' + Date.now());
     locationData = await resp.json();
     placeMarkers();
     loadState();
