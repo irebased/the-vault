@@ -535,6 +535,31 @@
                 "location": "Tacurong, Phillipines",
                 "status": "confirmed",
                 "sources": ["delfinadap"]
+            },
+            {
+                "location": "Eyjafjallajokull, Iceland",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "South Pole",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Natif Waterfalls, Oman",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Gaborone, Botswana",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
+            },
+            {
+                "location": "Doha, Qatar",
+                "status": "confirmed",
+                "sources": ["delfinadap"]
             }
         ]
     },

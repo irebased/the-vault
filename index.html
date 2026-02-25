@@ -131,6 +131,15 @@
 
   .leaflet-container { background: #1a1a2e; }
 
+  /* Globe container */
+  #globe-container {
+    position: fixed; inset: 0; z-index: 0; display: none;
+    background: #1a1a2e;
+  }
+  #globe-container.active { display: block; }
+  #globe-container canvas { width: 100% !important; height: 100% !important; }
+  #map.hidden { display: none; }
+
   /* Stage tabs (inside toolbar) */
   .stage-tab {
     padding: 4px 10px; border-radius: 4px; border: none;
@@ -193,10 +202,15 @@
 <body>
 
 <div id="map"></div>
+<div id="globe-container"></div>
 
 <!-- Toolbar -->
 <div class="toolbar">
   <button id="btn-arrow" title="Draw arrows between locations">Draw Arrow</button>
+  <div class="sep"></div>
+  <button id="btn-globe" title="Toggle 3D globe view">Globe</button>
+  <button id="btn-draw-lat" title="Click a location to draw a latitude line">Draw Lat</button>
+  <button id="btn-draw-lng" title="Click a location to draw a longitude line">Draw Lng</button>
   <div class="sep"></div>
   <div class="stage-group">
     <button class="stage-tab active" data-stage="all">All</button>
@@ -271,6 +285,8 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://unpkg.com/globe.gl@2.35.1/dist/globe.gl.min.js"></script>
 <script>
 // ============================================================
 // Coordinate database for all locations
@@ -359,6 +375,11 @@ const COORDS = {
   "Vladivostok, Russia": [43.1155, 131.8855],
   "Cochabamba, Bolivia": [-17.3895, -66.1568],
   "Tacurong, Phillipines": [6.6928, 124.6789],
+  "Eyjafjallajokull, Iceland": [63.6320, -19.6126],
+  "South Pole": [-90.0, 0.0],
+  "Natif Waterfalls, Oman": [17.1000, 54.2833],
+  "Gaborone, Botswana": [-24.6282, 25.9231],
+  "Doha, Qatar": [25.2854, 51.5310],
 };
 
 // ============================================================
@@ -456,6 +477,7 @@ function placeMarkers() {
 // Arrow drawing
 // ============================================================
 function onMarkerClick(locKey) {
+  if (drawLatMode || drawLngMode) { onMarkerClickGridLine(locKey); return; }
   if (!arrowMode) return;
   if (!arrowFrom) {
     arrowFrom = locKey;
@@ -681,12 +703,16 @@ const statusEl = document.getElementById('status');
 btnArrow.addEventListener('click', () => {
   arrowMode = !arrowMode;
   btnArrow.classList.toggle('active', arrowMode);
-  if (!arrowMode) {
+  if (arrowMode) {
+    // Turn off grid line modes
+    drawLatMode = false; drawLngMode = false;
+    document.getElementById('btn-draw-lat').classList.remove('active');
+    document.getElementById('btn-draw-lng').classList.remove('active');
+    setStatus('Click a location to start an arrow');
+  } else {
     if (arrowFrom) highlightMarker(arrowFrom, false);
     arrowFrom = null;
     setStatus('');
-  } else {
-    setStatus('Click a location to start an arrow');
   }
   // Toggle crosshair cursor on markers
   document.querySelectorAll('.marker-dot').forEach(el => {
@@ -713,10 +739,13 @@ function highlightMarker(locKey, on) {
 
 // Clear all
 document.getElementById('btn-clear').addEventListener('click', () => {
-  if (!confirm('Delete all arrows? This cannot be undone.')) return;
+  if (!confirm('Delete all arrows and grid lines? This cannot be undone.')) return;
   for (const id of Object.keys(arrowLayers)) removeArrowLayer(id);
   arrows = [];
+  for (const id of Object.keys(gridLineLayers)) removeGridLineLayer(id);
+  gridLines = [];
   saveState();
+  updateGlobeGridLines();
   setStatus('All arrows cleared');
 });
 
@@ -775,7 +804,7 @@ let modalMode = 'export';
 document.getElementById('btn-export').addEventListener('click', () => {
   modalMode = 'export';
   modalTitle.textContent = 'Export Map Data';
-  const data = JSON.stringify({ arrows, version: 1 });
+  const data = JSON.stringify({ arrows, gridLines, version: 2 });
   const encoded = btoa(unescape(encodeURIComponent(data)));
   modalTextarea.value = encoded;
   modalTextarea.readOnly = true;
@@ -818,14 +847,27 @@ btnModalAction.addEventListener('click', () => {
       for (const id of Object.keys(arrowLayers)) removeArrowLayer(id);
       arrows = [];
       nextArrowId = 1;
-      // Import
+      for (const id of Object.keys(gridLineLayers)) removeGridLineLayer(id);
+      gridLines = [];
+      nextGridLineId = 1;
+      // Import arrows
       for (const a of data.arrows) {
         const arrow = { id: 'a' + (nextArrowId++), from: a.from, to: a.to, note: a.note || '', color: a.color || '#e94560' };
         arrows.push(arrow);
         renderArrow(arrow);
       }
+      // Import grid lines
+      if (data.gridLines && Array.isArray(data.gridLines)) {
+        for (const g of data.gridLines) {
+          const line = { id: 'gl' + (nextGridLineId++), type: g.type, value: g.value, location: g.location, color: g.color || '#22d3ee' };
+          gridLines.push(line);
+          renderGridLine(line);
+        }
+      }
       saveState();
-      modalMsg.textContent = `Imported ${data.arrows.length} arrows!`;
+      updateGlobeGridLines();
+      const glCount = data.gridLines ? data.gridLines.length : 0;
+      modalMsg.textContent = `Imported ${data.arrows.length} arrows and ${glCount} grid lines!`;
       setTimeout(() => modalOverlay.classList.remove('open'), 800);
     } catch (e) {
       modalMsg.textContent = 'Error: invalid data. Make sure you pasted the full export string.';
@@ -837,7 +879,7 @@ btnModalAction.addEventListener('click', () => {
 // LocalStorage persistence
 // ============================================================
 function saveState() {
-  const data = { arrows, nextArrowId, version: 1 };
+  const data = { arrows, nextArrowId, gridLines, nextGridLineId, version: 2 };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
@@ -852,6 +894,14 @@ function loadState() {
         const arrow = { id: a.id || ('a' + (nextArrowId++)), from: a.from, to: a.to, note: a.note || '', color: a.color || '#e94560' };
         arrows.push(arrow);
         renderArrow(arrow);
+      }
+    }
+    if (data.gridLines) {
+      nextGridLineId = data.nextGridLineId || 1;
+      for (const g of data.gridLines) {
+        const line = { id: g.id || ('gl' + (nextGridLineId++)), type: g.type, value: g.value, location: g.location, color: g.color || '#22d3ee' };
+        gridLines.push(line);
+        renderGridLine(line);
       }
     }
   } catch (e) {
@@ -909,6 +959,11 @@ const CONTINENTS = {
   "Surat, India": "Asia", "Mosul, Iraq": "Asia", "Giresun, Turkey": "Asia",
   "Antalya, Turkey": "Asia", "Pune, India": "Asia", "Hasik, Oman": "Asia",
   "Vladivostok, Russia": "Asia", "Tacurong, Phillipines": "Asia",
+  "Eyjafjallajokull, Iceland": "Europe",
+  "South Pole": "Antarctica",
+  "Natif Waterfalls, Oman": "Asia",
+  "Gaborone, Botswana": "Africa",
+  "Doha, Qatar": "Asia",
   "Kupang, Indonesia": "Asia",
   "Cairns, Australia": "Oceania", "Lower Hutt, New Zealand": "Oceania",
   "Heard Island, Australia": "Oceania", "Alofi, Niue": "Oceania",
@@ -1042,6 +1097,337 @@ function updateStats() {
     addBarRow(byContSec, continent, count, pct, color, false);
   }
 }
+
+// ============================================================
+// Lat/Lng line drawing
+// ============================================================
+let gridLines = []; // { id, type: 'lat'|'lng', value, location, color }
+let gridLineLayers = {}; // id -> { lines: [L.polyline...], hitLines: [L.polyline...] }
+let nextGridLineId = 1;
+let drawLatMode = false;
+let drawLngMode = false;
+
+const GRID_COLORS = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#f97316'];
+let gridColorIdx = 0;
+
+function nextGridColor() {
+  const c = GRID_COLORS[gridColorIdx % GRID_COLORS.length];
+  gridColorIdx++;
+  return c;
+}
+
+function createGridLine(type, locKey) {
+  const coords = COORDS[locKey];
+  if (!coords) return;
+  const value = type === 'lat' ? coords[0] : coords[1];
+  // Prevent duplicate: same type + same value (within 0.01 deg)
+  if (gridLines.some(g => g.type === type && Math.abs(g.value - value) < 0.01)) {
+    setStatus(`A ${type === 'lat' ? 'latitude' : 'longitude'} line already exists there`);
+    return;
+  }
+  const id = 'gl' + (nextGridLineId++);
+  const color = nextGridColor();
+  const line = { id, type, value, location: locKey, color };
+  gridLines.push(line);
+  renderGridLine(line);
+  saveState();
+  updateGlobeGridLines();
+  setStatus(`${type === 'lat' ? 'Latitude' : 'Longitude'} line at ${value.toFixed(2)}° (${locKey})`);
+}
+
+function renderGridLine(line) {
+  const polylines = [];
+  const hitLines = [];
+  if (line.type === 'lat') {
+    // Horizontal line at this latitude, spanning all world copies
+    for (const offset of WORLD_COPIES) {
+      const pts = [];
+      for (let lng = -180; lng <= 180; lng += 2) {
+        pts.push([line.value, lng + offset]);
+      }
+      const pl = L.polyline(pts, {
+        color: line.color, weight: 1.8, opacity: 0.7, dashArray: '8 4',
+      }).addTo(map);
+      polylines.push(pl);
+      const hit = L.polyline(pts, {
+        color: 'transparent', weight: 14, opacity: 0,
+      }).addTo(map);
+      hit.on('contextmenu', (e) => { e.originalEvent.preventDefault(); showGridLineMenu(line, e); });
+      hit.on('mouseover', () => showGridLineTooltip(line));
+      hit.on('mouseout', hideGridLineTooltip);
+      hitLines.push(hit);
+    }
+  } else {
+    // Vertical line at this longitude, spanning pole to pole
+    for (const offset of WORLD_COPIES) {
+      const pts = [];
+      for (let lat = -90; lat <= 90; lat += 2) {
+        pts.push([lat, line.value + offset]);
+      }
+      const pl = L.polyline(pts, {
+        color: line.color, weight: 1.8, opacity: 0.7, dashArray: '8 4',
+      }).addTo(map);
+      polylines.push(pl);
+      const hit = L.polyline(pts, {
+        color: 'transparent', weight: 14, opacity: 0,
+      }).addTo(map);
+      hit.on('contextmenu', (e) => { e.originalEvent.preventDefault(); showGridLineMenu(line, e); });
+      hit.on('mouseover', () => showGridLineTooltip(line));
+      hit.on('mouseout', hideGridLineTooltip);
+      hitLines.push(hit);
+    }
+  }
+  gridLineLayers[line.id] = { lines: polylines, hitLines };
+}
+
+function removeGridLineLayer(id) {
+  const layers = gridLineLayers[id];
+  if (layers) {
+    for (const pl of layers.lines) map.removeLayer(pl);
+    for (const hl of layers.hitLines) map.removeLayer(hl);
+    delete gridLineLayers[id];
+  }
+}
+
+function rerenderAllGridLines() {
+  for (const id of Object.keys(gridLineLayers)) removeGridLineLayer(id);
+  for (const line of gridLines) renderGridLine(line);
+}
+
+// Tooltip for grid lines (reuse arrow popover)
+function showGridLineTooltip(line) {
+  const label = line.type === 'lat' ? 'Latitude' : 'Longitude';
+  popoverLabel.textContent = `${label}: ${line.value.toFixed(2)}°`;
+  popoverNote.textContent = line.location;
+  popoverEl.style.display = 'block';
+}
+function hideGridLineTooltip() { popoverEl.style.display = 'none'; }
+
+// Context menu for deleting grid lines
+let contextGridLineId = null;
+function showGridLineMenu(line, e) {
+  contextGridLineId = line.id;
+  // Position a small delete confirmation near the click
+  colorMenu.style.display = 'none'; // hide arrow menu if open
+  // Reuse popover for a quick confirm
+  if (confirm(`Delete this ${line.type === 'lat' ? 'latitude' : 'longitude'} line at ${line.value.toFixed(2)}°?`)) {
+    removeGridLineLayer(line.id);
+    gridLines = gridLines.filter(g => g.id !== line.id);
+    saveState();
+    updateGlobeGridLines();
+  }
+  contextGridLineId = null;
+}
+
+// Handle marker clicks for lat/lng drawing
+function onMarkerClickGridLine(locKey) {
+  if (drawLatMode) {
+    createGridLine('lat', locKey);
+  } else if (drawLngMode) {
+    createGridLine('lng', locKey);
+  }
+}
+
+// Wire up the Draw Lat / Draw Lng buttons
+const btnDrawLat = document.getElementById('btn-draw-lat');
+const btnDrawLng = document.getElementById('btn-draw-lng');
+
+btnDrawLat.addEventListener('click', () => {
+  drawLatMode = !drawLatMode;
+  if (drawLatMode) drawLngMode = false;
+  btnDrawLat.classList.toggle('active', drawLatMode);
+  btnDrawLng.classList.remove('active');
+  if (arrowMode) { btnArrow.click(); } // turn off arrow mode
+  if (drawLatMode) {
+    setStatus('Click a location to draw a latitude line');
+  } else {
+    setStatus('');
+  }
+  document.querySelectorAll('.marker-dot').forEach(el => {
+    el.classList.toggle('arrow-mode', drawLatMode || drawLngMode);
+  });
+});
+
+btnDrawLng.addEventListener('click', () => {
+  drawLngMode = !drawLngMode;
+  if (drawLngMode) drawLatMode = false;
+  btnDrawLng.classList.toggle('active', drawLngMode);
+  btnDrawLat.classList.remove('active');
+  if (arrowMode) { btnArrow.click(); } // turn off arrow mode
+  if (drawLngMode) {
+    setStatus('Click a location to draw a longitude line');
+  } else {
+    setStatus('');
+  }
+  document.querySelectorAll('.marker-dot').forEach(el => {
+    el.classList.toggle('arrow-mode', drawLatMode || drawLngMode);
+  });
+});
+
+// ============================================================
+// Globe mode
+// ============================================================
+let globeInstance = null;
+let globeMode = false;
+const globeContainer = document.getElementById('globe-container');
+
+function buildGlobeData() {
+  const points = [];
+  if (!locationData) return points;
+  const stages = locationData.locations;
+  for (const [stage, locs] of Object.entries(stages)) {
+    if (activeStage !== 'all' && stage !== activeStage) continue;
+    for (const loc of locs) {
+      const coords = COORDS[loc.location];
+      if (!coords) continue;
+      const color = STATUS_COLORS[loc.status] || '#94a3b8';
+      points.push({
+        lat: coords[0], lng: coords[1], label: loc.location,
+        color, size: 0.4, stage, status: loc.status,
+      });
+    }
+  }
+  return points;
+}
+
+function buildGlobeArcs() {
+  const arcs = [];
+  for (const arrow of arrows) {
+    const fromCoords = COORDS[arrow.from];
+    const toCoords = COORDS[arrow.to];
+    if (!fromCoords || !toCoords) continue;
+    if (activeStage !== 'all') {
+      const fromStage = locationStage[arrow.from];
+      const toStage = locationStage[arrow.to];
+      if (fromStage !== activeStage || toStage !== activeStage) continue;
+    }
+    arcs.push({
+      startLat: fromCoords[0], startLng: fromCoords[1],
+      endLat: toCoords[0], endLng: toCoords[1],
+      color: arrow.color, label: `${arrow.from} → ${arrow.to}`,
+    });
+  }
+  return arcs;
+}
+
+function buildGlobeGridLines() {
+  return gridLines.map(line => {
+    const coords = [];
+    if (line.type === 'lat') {
+      for (let lng = -180; lng <= 180; lng += 2) {
+        coords.push({ lat: line.value, lng });
+      }
+    } else {
+      for (let lat = -90; lat <= 90; lat += 2) {
+        coords.push({ lat, lng: line.value });
+      }
+    }
+    return {
+      coords,
+      color: line.color,
+      label: `${line.type === 'lat' ? 'Lat' : 'Lng'} ${line.value.toFixed(2)}°`,
+    };
+  });
+}
+
+function initGlobe() {
+  if (globeInstance) return;
+  globeInstance = Globe()(globeContainer)
+    .globeImageUrl('https://unpkg.com/three-globe@2.37.1/example/img/earth-night.jpg')
+    .bumpImageUrl('https://unpkg.com/three-globe@2.37.1/example/img/earth-topology.png')
+    .backgroundImageUrl('//unpkg.com/three-globe@2.37.1/example/img/night-sky.png')
+    .showAtmosphere(true)
+    .atmosphereColor('#3a228a')
+    .atmosphereAltitude(0.25)
+    .pointsData(buildGlobeData())
+    .pointLat('lat')
+    .pointLng('lng')
+    .pointColor('color')
+    .pointAltitude(0.01)
+    .pointRadius('size')
+    .pointLabel('label')
+    .arcsData(buildGlobeArcs())
+    .arcStartLat('startLat')
+    .arcStartLng('startLng')
+    .arcEndLat('endLat')
+    .arcEndLng('endLng')
+    .arcColor('color')
+    .arcDashLength(0.4)
+    .arcDashGap(0.2)
+    .arcDashAnimateTime(1500)
+    .arcStroke(0.5)
+    .arcLabel('label')
+    .onPointClick(point => {
+      if (drawLatMode || drawLngMode) {
+        onMarkerClickGridLine(point.label);
+      }
+    });
+
+  // Add user-drawn grid lines
+  updateGlobeGridLines();
+
+  // Size to container
+  const resize = () => {
+    if (globeInstance) {
+      globeInstance.width(window.innerWidth);
+      globeInstance.height(window.innerHeight);
+    }
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Point camera at the current map center
+  const center = map.getCenter();
+  globeInstance.pointOfView({ lat: center.lat, lng: center.lng, altitude: 2.5 });
+}
+
+function updateGlobeGridLines() {
+  if (!globeInstance) return;
+  const data = buildGlobeGridLines();
+  globeInstance
+    .pathsData(data)
+    .pathPoints('coords')
+    .pathPointLat('lat')
+    .pathPointLng('lng')
+    .pathColor('color')
+    .pathStroke(1.5)
+    .pathDashLength(1)
+    .pathDashGap(0)
+    .pathTransitionDuration(0);
+}
+
+function updateGlobeData() {
+  if (!globeInstance || !globeMode) return;
+  globeInstance.pointsData(buildGlobeData());
+  globeInstance.arcsData(buildGlobeArcs());
+  updateGlobeGridLines();
+}
+
+function toggleGlobe() {
+  globeMode = !globeMode;
+  const btn = document.getElementById('btn-globe');
+  btn.classList.toggle('active', globeMode);
+
+  if (globeMode) {
+    document.getElementById('map').classList.add('hidden');
+    globeContainer.classList.add('active');
+    initGlobe();
+    updateGlobeData();
+  } else {
+    globeContainer.classList.remove('active');
+    document.getElementById('map').classList.remove('hidden');
+    map.invalidateSize();
+  }
+}
+
+document.getElementById('btn-globe').addEventListener('click', toggleGlobe);
+
+// Patch filterMarkers to also update globe
+const _origFilterMarkers = filterMarkers;
+filterMarkers = function() {
+  _origFilterMarkers();
+  updateGlobeData();
+};
 
 // ============================================================
 // Init
