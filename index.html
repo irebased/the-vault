@@ -197,6 +197,23 @@
   .stat-row-bar { display: flex; align-items: center; padding: 5px 0; }
   .stat-row-bar .stat-label { min-width: 80px; font-size: 12px; }
   .stat-row-bar .stat-value { min-width: 24px; text-align: right; font-size: 12px; }
+
+  /* Location list in sidebar */
+  .loc-list { list-style: none; padding: 0; margin: 0; }
+  .loc-item {
+    display: flex; align-items: center; gap: 8px; padding: 5px 6px;
+    border-radius: 5px; cursor: pointer; transition: background 0.15s;
+    font-size: 12px; color: #ccc;
+  }
+  .loc-item:hover { background: #0f3460; color: #fff; }
+  .loc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .loc-search {
+    width: 100%; background: #0a0a1a; color: #e0e0e0; border: 1px solid #0f3460;
+    border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-bottom: 8px;
+    font-family: inherit; outline: none;
+  }
+  .loc-search:focus { border-color: #1a4a8a; }
+  .loc-search::placeholder { color: #555; }
 </style>
 </head>
 <body>
@@ -292,94 +309,99 @@
 // Coordinate database for all locations
 // ============================================================
 const COORDS = {
+  // Stage 1
+  "Maputo, Mozambique": [-25.9692, 32.5732],
   "Accra, Ghana": [5.6037, -0.1870],
-  "Algiers, Algeria": [36.7538, 3.0588],
-  "Buffalo, New York": [42.8864, -78.8784],
-  "Cairo, Egypt": [30.0444, 31.2357],
-  "Casablanca, Morocco": [33.5731, -7.5898],
-  "Copenhagen, Denmark": [55.6761, 12.5683],
-  "DeKalb, Illinois": [41.9295, -88.7503],
-  "Dimtu, Ethiopia": [5.65, 36.55],
-  "Divo, Cote d'Ivore": [5.8372, -5.3601],
-  "Georgetown, Ascension Island": [-7.9289, -14.4101],
-  "Heard Island, Australia": [-53.1, 73.5],
-  "Ile de la Possession, France": [-46.4167, 51.75],
-  "Iturup, Russia": [45.15, 148.0],
   "Kabul, Afghanistan": [34.5553, 69.2075],
+  "Arles, France": [43.6768, 4.6299],
   "Kupang, Indonesia": [-10.1772, 123.607],
   "Lahore, Pakistan": [31.5204, 74.3587],
   "Lima, Peru": [-12.0464, -77.0428],
-  "Lower Hutt, New Zealand": [-41.2127, 174.912],
-  "Maputo, Mozambique": [-25.9692, 32.5732],
-  "Montreal, Quebec": [45.5017, -73.5673],
-  "Moscow, Russia": [55.7558, 37.6173],
-  "Nazare, Portugal": [39.6017, -9.0713],
-  "Nome, Alaska": [64.5011, -165.4064],
-  "Cairns, Australia": [-16.9186, 145.7781],
-  "Quito, Ecuador": [-0.1807, -78.4678],
-  "Seoul, South Korea": [37.5665, 126.978],
-  "Tampa Bay, Florida": [27.9506, -82.4572],
   "Tashkent, Uzbekistan": [41.2995, 69.2401],
-  "Tierra Del Fuego": [-54.3, -69.0],
-  "Tijuana, Mexico": [32.5149, -117.0382],
-  "Toad Suck, Arkansas": [35.0882, -92.5799],
-  "Wichita, Kansas": [37.6872, -97.3301],
-  "Yellowknife, Northwest Territories, Canada": [62.454, -114.3718],
-  "Ankara, Turkey": [39.9334, 32.8597],
-  "Babylon, Iraq": [32.5422, 44.421],
   "Tallinn, Estonia": [59.437, 24.7536],
-  "Thane, India": [19.2183, 72.9781],
-  "Arles, France": [43.6768, 4.6299],
-  "New Orleans, Louisiana": [29.9511, -90.0715],
-  "Male, Maldives": [4.1755, 73.5093],
-  "Alofi, Niue": [-19.059, -169.9175],
+  "New Orleans, U.S.": [29.9511, -90.0715],
+  "Yellowstone, Wyoming": [44.428, -110.5885],
+  "Casablanca, Morocco": [33.5731, -7.5898],
+  "North York, Ontario": [43.7615, -79.4111],
+  "Kandi, Benin": [11.1347, 2.9383],
+  "Seoul, South Korea": [37.5665, 126.978],
+  "Cairo, Egypt": [30.0444, 31.2357],
+  "Lower Hutt, New Zealand": [-41.2127, 174.912],
+  "Ankara, Turkey": [39.9334, 32.8597],
   "Tbilisi, Georgia": [41.7151, 44.8271],
-  "Yellowstone": [44.428, -110.5885],
+  "Toad Suck, Arkansas": [35.0882, -92.5799],
+  "Tijuana, Mexico": [32.5149, -117.0382],
+  "Armavir, Armenia": [40.1546, 44.0383],
+  "Basel, Switzerland": [47.5596, 7.5886],
+  "Doha, Qatar": [25.2854, 51.5310],
+  "Moscow, Russia": [55.7558, 37.6173],
+  "Algiers, Algeria": [36.7538, 3.0588],
+  "Tampa Bay, Florida": [27.9506, -82.4572],
+  "Wichita, KS": [37.6872, -97.3301],
+  "Tierra del Fuego, Argentina/Chile": [-54.3, -69.0],
+  "DeKalb, IL": [41.9295, -88.7503],
+  "Montréal, Canada": [45.5017, -73.5673],
+  "Cairns, Queensland, Australia": [-16.9186, 145.7781],
+  "Divo, Côte d'Ivoire": [5.8372, -5.3601],
+  "Copenhagen, Denmark": [55.6761, 12.5683],
+  "Buffalo, NY": [42.8864, -78.8784],
+  "Sucre, Bolivia": [-19.0196, -65.2619],
+  "Quito, Ecuador": [-0.1807, -78.4678],
+  "South Pole, Antarctica": [-90.0, 0.0],
+  "Malé, Maldives": [4.1755, 73.5093],
+  "Iturup, Japan/Russia": [45.15, 148.0],
+  "Gaborone, Botswana": [-24.6282, 25.9231],
+  "Yellowknife, Canada": [62.454, -114.3718],
+  "Thane, India": [19.2183, 72.9781],
+  "Nome, Alaska": [64.5011, -165.4064],
+  "Dimtu, Ethiopia": [5.65, 36.55],
+  "Nazaré, Portugal": [39.6017, -9.0713],
+  "Antananarivo, Madagascar": [-18.8792, 47.5079],
+  "Georgetown, Ascension Island": [-7.9289, -14.4101],
+  "Heard Island, Indian Ocean": [-53.1, 73.5],
+  "Île de la Possession, Crozet Archipelago": [-46.4167, 51.75],
+  "Eyjafjallajökull, Iceland": [63.6320, -19.6126],
+  // Stage 2
   "Casper, Wyoming": [42.8666, -106.3131],
   "Arzamas, Russia": [55.3889, 43.8144],
   "Maiduguri, Nigeria": [11.8311, 13.151],
   "Baku, Azerbaijan": [40.4093, 49.8671],
-  "Minnipeg, Mantinoba": [49.8951, -97.1384],
+  "Fort Morgan, CO": [40.2503, -103.7998],
   "Surat, India": [21.1702, 72.8311],
   "Marquette, Michigan": [46.5436, -87.3954],
-  "Beatty, Nevada": [36.9086, -116.7592],
+  "Beatty, Nevada, U.S.": [36.9086, -116.7592],
   "Mosul, Iraq": [36.335, 43.1189],
   "Visby, Sweden": [57.6348, 18.2948],
   "Istanbul, Turkey": [41.0082, 28.9784],
-  "Nantucket, Massachusetts": [41.2835, -70.0995],
-  "Povegla, Italy": [45.3831, 12.3309],
+  "Genoa, Italy": [44.4056, 8.9463],
+  "Island of Death, Mayotte, France": [-12.8275, 45.1662],
   "Giresun, Turkey": [40.9128, 38.3895],
-  "L'ascension, Quebec": [46.6833, -73.6833],
-  "Okato, New Zealand": [-39.2019, 173.875],
-  "Nova Russas, Brazil": [-4.7089, -40.5639],
-  "Ceske Budejovice, Czechia": [48.9745, 14.4746],
+  "L'Ascension, Quebec, Canada": [46.6833, -73.6833],
+  "Ōkato, New Zealand": [-39.2019, 173.875],
+  "Nova Russas, Ceará, Brazil": [-4.7089, -40.5639],
+  "České Budějovice, Czechia": [48.9745, 14.4746],
   "Christchurch, New Zealand": [-43.5321, 172.6362],
   "Castelo Branco, Portugal": [39.8233, -7.4922],
   "Sokode, Togo": [8.9833, 1.1333],
-  "Curico, Chile": [-34.9833, -71.2333],
+  "Curicó, Chile": [-34.9833, -71.2333],
   "Monkey Bay, Malawi": [-14.0833, 34.9167],
   "Antalya, Turkey": [36.8969, 30.7133],
-  "Ambanja, Madegascar": [-13.6833, 48.45],
-  "Saint-Pierre, SPM": [46.7823, -56.1773],
+  "Ambanja, Madagascar": [-13.6833, 48.45],
+  "St-Pierre, Saint-Pierre & Miquelon": [46.7823, -56.1773],
   "Krasnador, Russia": [45.0353, 38.9753],
-  "San Miguel de Tucuman, Argentina": [-26.8083, -65.2176],
-  "Derby, Western Australia": [-17.3088, 123.6277],
-  "Manaus, Brazil": [-3.119, -60.0217],
-  "Pune, India": [18.5204, 73.8567],
-  "Hasik, Oman": [17.4167, 55.6833],
+  "San Miguel de Tucumán, Argentina": [-26.8083, -65.2176],
+  "Derby Wharf, Australia": [-17.3088, 123.6277],
+  "Manaus, Amazonas, Brazil": [-3.119, -60.0217],
+  "Pune, Maharashtra, India": [18.5204, 73.8567],
+  "Natif Waterfalls, Hasik, Oman": [17.4167, 55.6833],
   "Velingrad, Bulgaria": [42.0274, 23.991],
   "Marrakesh, Morocco": [31.6295, -7.9811],
-  "Orlando, Florida": [28.5383, -81.3792],
-  "Charlotte, North Carolina": [35.2271, -80.8431],
-  "Edmonton, Alberta": [53.5461, -113.4938],
+  "Orlando International Airport, FL, U.S.": [28.4312, -81.3081],
+  "Charlotte, North Carolina, U.S.": [35.2271, -80.8431],
+  "Edmonton, Alberta, Canada": [53.5461, -113.4938],
   "Vladivostok, Russia": [43.1155, 131.8855],
   "Cochabamba, Bolivia": [-17.3895, -66.1568],
-  "Tacurong, Phillipines": [6.6928, 124.6789],
-  "Eyjafjallajokull, Iceland": [63.6320, -19.6126],
-  "South Pole": [-90.0, 0.0],
-  "Natif Waterfalls, Oman": [17.1000, 54.2833],
-  "Gaborone, Botswana": [-24.6282, 25.9231],
-  "Doha, Qatar": [25.2854, 51.5310],
+  "Tacurong, Philippines": [6.6928, 124.6789],
 };
 
 // ============================================================
@@ -926,50 +948,55 @@ document.addEventListener('keydown', (e) => {
 // Continent mapping
 // ============================================================
 const CONTINENTS = {
-  "Accra, Ghana": "Africa", "Algiers, Algeria": "Africa", "Cairo, Egypt": "Africa",
-  "Casablanca, Morocco": "Africa", "Dimtu, Ethiopia": "Africa", "Divo, Cote d'Ivore": "Africa",
-  "Georgetown, Ascension Island": "Africa", "Maputo, Mozambique": "Africa",
-  "Maiduguri, Nigeria": "Africa", "Sokode, Togo": "Africa", "Monkey Bay, Malawi": "Africa",
-  "Ambanja, Madegascar": "Africa", "Marrakesh, Morocco": "Africa",
-  "Buffalo, New York": "N. America", "DeKalb, Illinois": "N. America",
-  "Montreal, Quebec": "N. America", "Nome, Alaska": "N. America",
-  "Tampa Bay, Florida": "N. America", "Tijuana, Mexico": "N. America",
-  "Toad Suck, Arkansas": "N. America", "Wichita, Kansas": "N. America",
-  "Yellowknife, Northwest Territories, Canada": "N. America",
-  "New Orleans, Louisiana": "N. America", "Yellowstone": "N. America",
-  "Casper, Wyoming": "N. America", "Minnipeg, Mantinoba": "N. America",
-  "Marquette, Michigan": "N. America", "Beatty, Nevada": "N. America",
-  "Nantucket, Massachusetts": "N. America", "L'ascension, Quebec": "N. America",
-  "Saint-Pierre, SPM": "N. America", "Orlando, Florida": "N. America",
-  "Charlotte, North Carolina": "N. America", "Edmonton, Alberta": "N. America",
+  // Africa
+  "Maputo, Mozambique": "Africa", "Accra, Ghana": "Africa", "Cairo, Egypt": "Africa",
+  "Casablanca, Morocco": "Africa", "Dimtu, Ethiopia": "Africa", "Kandi, Benin": "Africa",
+  "Divo, Côte d'Ivoire": "Africa", "Georgetown, Ascension Island": "Africa",
+  "Algiers, Algeria": "Africa", "Maiduguri, Nigeria": "Africa", "Sokode, Togo": "Africa",
+  "Monkey Bay, Malawi": "Africa", "Ambanja, Madagascar": "Africa", "Antananarivo, Madagascar": "Africa",
+  "Marrakesh, Morocco": "Africa", "Gaborone, Botswana": "Africa",
+  "Island of Death, Mayotte, France": "Africa",
+  // N. America
+  "New Orleans, U.S.": "N. America", "Yellowstone, Wyoming": "N. America",
+  "North York, Ontario": "N. America", "Toad Suck, Arkansas": "N. America",
+  "Tijuana, Mexico": "N. America", "Tampa Bay, Florida": "N. America",
+  "Wichita, KS": "N. America", "DeKalb, IL": "N. America", "Montréal, Canada": "N. America",
+  "Buffalo, NY": "N. America", "Yellowknife, Canada": "N. America", "Nome, Alaska": "N. America",
+  "Casper, Wyoming": "N. America", "Fort Morgan, CO": "N. America",
+  "Marquette, Michigan": "N. America", "Beatty, Nevada, U.S.": "N. America",
+  "L'Ascension, Quebec, Canada": "N. America",
+  "St-Pierre, Saint-Pierre & Miquelon": "N. America",
+  "Orlando International Airport, FL, U.S.": "N. America",
+  "Charlotte, North Carolina, U.S.": "N. America", "Edmonton, Alberta, Canada": "N. America",
+  // S. America
   "Lima, Peru": "S. America", "Quito, Ecuador": "S. America",
-  "Tierra Del Fuego": "S. America", "Nova Russas, Brazil": "S. America",
-  "Curico, Chile": "S. America", "San Miguel de Tucuman, Argentina": "S. America",
-  "Manaus, Brazil": "S. America", "Cochabamba, Bolivia": "S. America",
-  "Copenhagen, Denmark": "Europe", "Moscow, Russia": "Europe", "Nazare, Portugal": "Europe",
-  "Tallinn, Estonia": "Europe", "Arles, France": "Europe", "Visby, Sweden": "Europe",
-  "Istanbul, Turkey": "Europe", "Povegla, Italy": "Europe",
-  "Ceske Budejovice, Czechia": "Europe", "Castelo Branco, Portugal": "Europe",
+  "Tierra del Fuego, Argentina/Chile": "S. America", "Sucre, Bolivia": "S. America",
+  "Nova Russas, Ceará, Brazil": "S. America", "Curicó, Chile": "S. America",
+  "San Miguel de Tucumán, Argentina": "S. America", "Manaus, Amazonas, Brazil": "S. America",
+  "Cochabamba, Bolivia": "S. America",
+  // Europe
+  "Arles, France": "Europe", "Copenhagen, Denmark": "Europe", "Moscow, Russia": "Europe",
+  "Nazaré, Portugal": "Europe", "Tallinn, Estonia": "Europe", "Basel, Switzerland": "Europe",
+  "Visby, Sweden": "Europe", "Istanbul, Turkey": "Europe", "Genoa, Italy": "Europe",
+  "České Budějovice, Czechia": "Europe", "Castelo Branco, Portugal": "Europe",
   "Velingrad, Bulgaria": "Europe", "Krasnador, Russia": "Europe",
-  "Kabul, Afghanistan": "Asia", "Lahore, Pakistan": "Asia",
-  "Seoul, South Korea": "Asia", "Tashkent, Uzbekistan": "Asia",
-  "Ankara, Turkey": "Asia", "Babylon, Iraq": "Asia", "Thane, India": "Asia",
-  "Tbilisi, Georgia": "Asia", "Male, Maldives": "Asia",
-  "Iturup, Russia": "Asia", "Arzamas, Russia": "Asia", "Baku, Azerbaijan": "Asia",
+  "Eyjafjallajökull, Iceland": "Europe", "Armavir, Armenia": "Europe",
+  // Asia
+  "Kabul, Afghanistan": "Asia", "Lahore, Pakistan": "Asia", "Seoul, South Korea": "Asia",
+  "Tashkent, Uzbekistan": "Asia", "Ankara, Turkey": "Asia", "Thane, India": "Asia",
+  "Tbilisi, Georgia": "Asia", "Doha, Qatar": "Asia", "Malé, Maldives": "Asia",
+  "Iturup, Japan/Russia": "Asia", "Arzamas, Russia": "Asia", "Baku, Azerbaijan": "Asia",
   "Surat, India": "Asia", "Mosul, Iraq": "Asia", "Giresun, Turkey": "Asia",
-  "Antalya, Turkey": "Asia", "Pune, India": "Asia", "Hasik, Oman": "Asia",
-  "Vladivostok, Russia": "Asia", "Tacurong, Phillipines": "Asia",
-  "Eyjafjallajokull, Iceland": "Europe",
-  "South Pole": "Antarctica",
-  "Natif Waterfalls, Oman": "Asia",
-  "Gaborone, Botswana": "Africa",
-  "Doha, Qatar": "Asia",
-  "Kupang, Indonesia": "Asia",
-  "Cairns, Australia": "Oceania", "Lower Hutt, New Zealand": "Oceania",
-  "Heard Island, Australia": "Oceania", "Alofi, Niue": "Oceania",
-  "Okato, New Zealand": "Oceania", "Christchurch, New Zealand": "Oceania",
-  "Derby, Western Australia": "Oceania",
-  "Ile de la Possession, France": "Antarctica",
+  "Antalya, Turkey": "Asia", "Pune, Maharashtra, India": "Asia",
+  "Natif Waterfalls, Hasik, Oman": "Asia", "Vladivostok, Russia": "Asia",
+  "Tacurong, Philippines": "Asia", "Kupang, Indonesia": "Asia",
+  // Oceania
+  "Cairns, Queensland, Australia": "Oceania", "Lower Hutt, New Zealand": "Oceania",
+  "Heard Island, Indian Ocean": "Oceania", "Ōkato, New Zealand": "Oceania",
+  "Christchurch, New Zealand": "Oceania", "Derby Wharf, Australia": "Oceania",
+  // Antarctica
+  "South Pole, Antarctica": "Antarctica",
+  "Île de la Possession, Crozet Archipelago": "Antarctica",
 };
 
 const CONTINENT_COLORS = {
@@ -1096,6 +1123,61 @@ function updateStats() {
     const color = CONTINENT_COLORS[continent] || '#94a3b8';
     addBarRow(byContSec, continent, count, pct, color, false);
   }
+
+  // Location list
+  const locSec = makeSection('Locations');
+  const search = document.createElement('input');
+  search.className = 'loc-search';
+  search.type = 'text';
+  search.placeholder = 'Search locations...';
+  locSec.appendChild(search);
+
+  const list = document.createElement('ul');
+  list.className = 'loc-list';
+  locSec.appendChild(list);
+
+  // Gather all locations sorted alphabetically
+  const allLocs = [];
+  for (const [stage, locs] of Object.entries(stages)) {
+    for (const loc of locs) {
+      if (activeStage !== 'all' && stage !== activeStage) continue;
+      allLocs.push({ name: loc.location, status: loc.status, stage });
+    }
+  }
+  allLocs.sort((a, b) => a.name.localeCompare(b.name));
+
+  function renderLocList(filter) {
+    list.textContent = '';
+    const q = (filter || '').toLowerCase();
+    for (const loc of allLocs) {
+      if (q && !loc.name.toLowerCase().includes(q)) continue;
+      const li = document.createElement('li');
+      li.className = 'loc-item';
+      const dot = document.createElement('span');
+      dot.className = 'loc-dot';
+      dot.style.background = STATUS_COLORS[loc.status] || '#94a3b8';
+      dot.style.borderColor = STAGE_COLORS[loc.stage] || '#60a5fa';
+      dot.style.border = '2px solid ' + (STAGE_COLORS[loc.stage] || '#60a5fa');
+      const name = document.createElement('span');
+      name.textContent = loc.name;
+      li.appendChild(dot);
+      li.appendChild(name);
+      li.addEventListener('click', () => {
+        const coords = COORDS[loc.name];
+        if (coords) {
+          if (globeMode && globeInstance) {
+            globeInstance.pointOfView({ lat: coords[0], lng: coords[1], altitude: 1.5 }, 800);
+          } else {
+            map.flyTo([coords[0], coords[1]], 8, { duration: 0.8 });
+          }
+        }
+      });
+      list.appendChild(li);
+    }
+  }
+
+  renderLocList('');
+  search.addEventListener('input', () => renderLocList(search.value));
 }
 
 // ============================================================
